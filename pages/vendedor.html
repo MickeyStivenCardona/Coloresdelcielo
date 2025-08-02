@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Vendedor</title>
+  <link rel="stylesheet" href="../css/vendedor.css" />
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import {
+      getFirestore, collection, getDocs, addDoc, deleteDoc, doc, Timestamp, query, where, setDoc, getDoc
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBz1f7G4nzNzVmdsV_-J1Oau-v_j4m-wg",
+      authDomain: "coloresdelcielo.firebaseapp.com",
+      projectId: "coloresdelcielo",
+      storageBucket: "coloresdelcielo.appspot.com",
+      messagingSenderId: "270205510079",
+      appId: "1:270205510079:web:fb3b2497aa2dd443a2c10a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const refCaja = doc(db, "config", "caja");
+
+    const ventaActual = {
+      mesa: null,
+      productos: [],
+    };
+
+    function showAlert(message) {
+      const alerta = document.getElementById("alerta");
+      alerta.textContent = message;
+      alerta.style.display = "block";
+      setTimeout(() => (alerta.style.display = "none"), 3000);
+    }
+
+    async function abrirCaja() {
+      const monto = prompt("¿Con cuánto dinero inicias el día?");
+      if (!monto || isNaN(parseFloat(monto))) return;
+
+      const data = {
+        inicio: parseFloat(monto),
+        abierta: true,
+        fin: null,
+        fecha: Timestamp.now()
+      };
+
+      await setDoc(refCaja, data);
+      await addDoc(collection(db, "caja_historial"), data);
+      mostrarCaja(data);
+      showAlert("Caja abierta correctamente.");
+    }
+
+    async function cerrarCaja() {
+      const snap = await getDoc(refCaja);
+      if (!snap.exists()) return showAlert("Primero debes abrir la caja.");
+
+      const monto = prompt("¿Con cuánto dinero cierras el día?");
+      if (!monto || isNaN(parseFloat(monto))) return;
+
+      const data = snap.data();
+      data.fin = parseFloat(monto);
+      data.abierta = false;
+
+      await setDoc(refCaja, data);
+      await addDoc(collection(db, "caja_historial"), data);
+      mostrarCaja(data);
+      showAlert("Caja cerrada correctamente.");
+    }
+
+    async function cargarCaja() {
+      const snap = await getDoc(refCaja);
+      if (snap.exists()) {
+        mostrarCaja(snap.data());
+      }
+    }
+
+    function mostrarCaja(data) {
+      document.getElementById("inicio-dia").textContent = data.inicio ? `$${data.inicio.toFixed(2)}` : "---";
+      document.getElementById("fin-dia").textContent = data.fin ? `$${data.fin.toFixed(2)}` : "---";
+      const ganancia = data.inicio && data.fin ? (data.fin - data.inicio).toFixed(2) : "---";
+      document.getElementById("ganancia-dia").textContent = `$${ganancia}`;
+    }
+
+    async function mostrarHistorialCaja() {
+      const historialSnapshot = await getDocs(collection(db, "caja_historial"));
+      const contenedor = document.getElementById("historial-caja");
+      contenedor.innerHTML = "";
+      historialSnapshot.forEach(doc => {
+        const d = doc.data();
+        const div = document.createElement("div");
+        div.className = "historial";
+        div.innerHTML = `
+          <div><strong>${new Date(d.fecha.seconds * 1000).toLocaleDateString()}</strong></div>
+          <div>Inicio: $${d.inicio?.toFixed(2) ?? "---"}</div>
+          <div>Fin: $${d.fin?.toFixed(2) ?? "---"}</div>
+          <div>Ganancia: $${(d.inicio && d.fin ? (d.fin - d.inicio).toFixed(2) : "---")}</div>
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    async function fetchMesas() {
+      const mesasSnapshot = await getDocs(collection(db, "mesas"));
+      const mesasList = document.getElementById("mesas-list");
+      mesasList.innerHTML = "";
+      const mesas = [];
+
+      mesasSnapshot.forEach((docRef) => {
+        const data = docRef.data();
+        mesas.push(data);
+
+        const mesaDiv = document.createElement("div");
+        mesaDiv.className = "mesa";
+        mesaDiv.innerHTML = `
+          <div>
+            <strong>${data.nombre}</strong> – Mozo: ${data.mozo}<br>
+            Total acumulado: <span id="total-${data.nombre}">--</span>
+          </div>
+          <button data-mesa="${data.nombre}" class="cerrar-cuenta">Cerrar Cuenta</button>
+        `;
+        mesasList.appendChild(mesaDiv);
+      });
+
+      actualizarMesaSelector(mesas);
+      actualizarTotalesPorMesa();
+    }
+
+    function actualizarMesaSelector(mesas) {
+      const select = document.getElementById("mesa-seleccionada");
+      select.innerHTML = `<option value="">-- Selecciona una mesa --</option>`;
+      mesas.forEach(mesa => {
+        const option = document.createElement("option");
+        option.value = mesa.nombre;
+        option.textContent = mesa.nombre;
+        select.appendChild(option);
+      });
+
+      select.addEventListener("change", (e) => {
+        ventaActual.mesa = e.target.value;
+        ventaActual.productos = [];
+      });
+    }
+
+    async function fetchProductos() {
+      const productosSnapshot = await getDocs(collection(db, "productos"));
+      const productosList = document.getElementById("productos-list");
+      productosList.innerHTML = "";
+      productosSnapshot.forEach((doc) => {
+        const data = doc.data();
+        const producto = document.createElement("button");
+        producto.textContent = `${data.name} - $${data.price.toFixed(2)}`;
+        producto.onclick = () => venderProducto(data);
+        productosList.appendChild(producto);
+      });
+    }
+
+    async function venderProducto(producto) {
+      if (!ventaActual.mesa) {
+        return showAlert("Debes seleccionar una mesa primero.");
+      }
+
+      ventaActual.productos.push(producto);
+      const total = ventaActual.productos.reduce((sum, p) => sum + p.price, 0);
+
+      await addDoc(collection(db, "ventas"), {
+        mesa: ventaActual.mesa,
+        productos: ventaActual.productos,
+        total: parseFloat(total.toFixed(2)),
+        fecha: Timestamp.now()
+      });
+
+      showAlert(`Venta registrada en ${ventaActual.mesa}. Total: $${total.toFixed(2)}`);
+      ventaActual.productos = [];
+      fetchVentas();
+      actualizarTotalesPorMesa();
+      actualizarTotalDelDia();
+    }
+
+    async function fetchVentas() {
+      const ventasSnapshot = await getDocs(collection(db, "ventas"));
+      const ventasList = document.getElementById("ventas-list");
+      ventasList.innerHTML = "";
+
+      ventasSnapshot.forEach(doc => {
+        const data = doc.data();
+        const venta = document.createElement("div");
+        venta.className = "venta";
+        venta.innerHTML = `<div><strong>${data.mesa}</strong> – $${data.total.toFixed(2)}</div><div>${new Date(data.fecha.seconds * 1000).toLocaleString()}</div>`;
+        ventasList.appendChild(venta);
+      });
+
+      actualizarTotalDelDia();
+    }
+
+    async function actualizarTotalesPorMesa() {
+      const ventasSnapshot = await getDocs(collection(db, "ventas"));
+      const totales = {};
+
+      ventasSnapshot.forEach(doc => {
+        const v = doc.data();
+        if (!totales[v.mesa]) totales[v.mesa] = 0;
+        totales[v.mesa] += v.total;
+      });
+
+      for (const mesa in totales) {
+        const span = document.getElementById(`total-${mesa}`);
+        if (span) span.textContent = `$${totales[mesa].toFixed(2)}`;
+      }
+    }
+
+    async function actualizarTotalDelDia() {
+      const ventasSnapshot = await getDocs(collection(db, "ventas"));
+      let totalDia = 0;
+      ventasSnapshot.forEach(doc => {
+        totalDia += doc.data().total;
+      });
+      document.getElementById("total-dia").textContent = `$${totalDia.toFixed(2)}`;
+    }
+
+    document.addEventListener("click", async (e) => {
+      if (e.target.classList.contains("cerrar-cuenta")) {
+        const mesa = e.target.getAttribute("data-mesa");
+        const ventasQ = query(collection(db, "ventas"), where("mesa", "==", mesa));
+        const ventasSnapshot = await getDocs(ventasQ);
+        let total = 0;
+        ventasSnapshot.forEach(docRef => {
+          total += docRef.data().total;
+        });
+
+        showAlert(`Cuenta cerrada para ${mesa}. Total: $${total.toFixed(2)}`);
+
+        for (const docRef of ventasSnapshot.docs) {
+          await deleteDoc(doc(db, "ventas", docRef.id));
+        }
+
+        fetchVentas();
+        actualizarTotalesPorMesa();
+      }
+    });
+
+    window.onload = () => {
+      fetchMesas();
+      fetchProductos();
+      fetchVentas();
+      cargarCaja();
+      mostrarHistorialCaja();
+      document.getElementById("abrir-caja").addEventListener("click", abrirCaja);
+      document.getElementById("cerrar-caja").addEventListener("click", cerrarCaja);
+    };
+  </script>
+</head>
+
+<body>
+  <a href="../pages/admin.html">👨‍💼</a>
+  <h1>Panel del Vendedor</h1>
+
+  <div id="alerta" class="alerta"></div>
+
+  <div id="caja-controles">
+    <button id="abrir-caja">Abrir Caja</button>
+    <button id="cerrar-caja">Cerrar Caja</button>
+    <div id="info-caja">
+      <p><strong>Inicio del día:</strong> <span id="inicio-dia">---</span></p>
+      <p><strong>Fin del día:</strong> <span id="fin-dia">---</span></p>
+      <p><strong>Ganancia del día:</strong> <span id="ganancia-dia">---</span></p>
+    </div>
+  </div>
+
+  <div style="margin-top: 1rem;">
+    <label for="mesa-seleccionada"><strong>Seleccionar mesa:</strong></label>
+    <select id="mesa-seleccionada">
+      <option value="">-- Selecciona una mesa --</option>
+    </select>
+  </div>
+
+  <section>
+    <h2>Mesas</h2>
+    <div id="mesas-list"></div>
+  </section>
+
+  <section>
+    <h2>Productos Disponibles</h2>
+    <div id="productos-list"></div>
+  </section>
+
+  <section>
+    <h2>Ventas del Día</h2>
+    <div id="ventas-list"></div>
+    <p><strong>Total del Día:</strong> <span id="total-dia">$0.00</span></p>
+  </section>
+
+  <section>
+    <h2>Historial de Caja</h2>
+    <div id="historial-caja"></div>
+  </section>
+</body>
+
+</html>

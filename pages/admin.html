@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Administración</title>
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <a href="../pages/vendedor.html">🍽️ </a>
+  <h1>Administración de Productos y Mesas</h1>
+
+  <!-- 🔔 Alertas -->
+  <div id="alerta" class="alerta" style="display: none;"></div>
+
+  <!-- ✅ Confirmación personalizada -->
+  <div id="confirm-box" style="display:none; background:#eee; padding:1rem; border:1px solid #ccc;">
+    <p id="confirm-message"></p>
+    <button id="confirm-yes">Sí</button>
+    <button id="confirm-no">No</button>
+  </div>
+
+  <!-- 📦 Productos -->
+  <section>
+    <h2>Productos</h2>
+    <input type="text" id="product-name" placeholder="Nombre del producto" />
+    <input type="number" id="product-price" placeholder="Precio" />
+    <button id="add-product-btn">Agregar Producto</button>
+    <ul id="product-list"></ul>
+  </section>
+
+  <!-- 🍽️ Mesas -->
+  <section>
+    <h2>Mesas</h2>
+    <input type="text" id="mesa-nombre" placeholder="Nombre de la mesa" />
+    <input type="text" id="mesa-mozo" placeholder="Nombre del mozo" />
+    <button id="add-mesa-btn">Agregar Mesa</button>
+    <ul id="mesa-list"></ul>
+  </section>
+
+  <!-- 🔌 Firebase -->
+  <script type="module" src="../js/firebase.js"></script>
+  <script type="module" src="../js/admin.js"></script>
+</body>
+</html>
