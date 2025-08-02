@@ -1,0 +1,72 @@
+ <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #2c2424; /* fondo marrón oscuro */
+      color: #f7e7cf;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 2rem;
+      font-size: 2rem;
+      color: #fce9d4;
+    }
+
+    .card-container {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .card {
+      background-color: #fce9d4; /* color del libro */
+      color: #2c2424; /* texto oscuro sobre fondo claro */
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      width: 220px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+
+    .card a {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1.2rem;
+      text-decoration: none;
+      color: #fff;
+      background-color: #7a5c50; /* marrón medio */
+      border-radius: 8px;
+      transition: background-color 0.3s;
+    }
+
+    .card a:hover {
+      background-color: #5a3e36;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Colores del Cielo</h1>
+
+  <div class="card-container">
+    <div class="card">
+      <h2>Vendedor</h2>
+      <a href="vendedor.html">Ir al panel</a>
+    </div>
+
+    <div class="card">
+      <h2>Administrador</h2>
+      <a href="admin.html">Ir al panel</a>
+    </div>
+  </div>
