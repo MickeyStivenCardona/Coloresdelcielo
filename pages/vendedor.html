@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Vendedor</title>
-  <link rel="stylesheet" href="/css/vendedor.css" />
-  <script src="/js/firebase.js"></script>
-  <script src="/js/vededor.js"></script>
-  <script type="module">
+  <link rel="stylesheet" href="../css/vendedor.css" />
+<script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import {
       getFirestore, collection, getDocs, addDoc, deleteDoc, doc, Timestamp, query, where, setDoc, getDoc
@@ -92,13 +91,10 @@
       contenedor.innerHTML = "";
       historialSnapshot.forEach(doc => {
         const d = doc.data();
-        const fechaStr = d.fecha?.seconds
-          ? new Date(d.fecha.seconds * 1000).toLocaleDateString()
-          : "Fecha no disponible";
         const div = document.createElement("div");
         div.className = "historial";
         div.innerHTML = `
-          <div><strong>${fechaStr}</strong></div>
+          <div><strong>${new Date(d.fecha.seconds * 1000).toLocaleDateString()}</strong></div>
           <div>Inicio: $${d.inicio?.toFixed(2) ?? "---"}</div>
           <div>Fin: $${d.fin?.toFixed(2) ?? "---"}</div>
           <div>Ganancia: $${(d.inicio && d.fin ? (d.fin - d.inicio).toFixed(2) : "---")}</div>
@@ -191,12 +187,9 @@
 
       ventasSnapshot.forEach(doc => {
         const data = doc.data();
-        const fechaStr = data.fecha?.seconds
-          ? new Date(data.fecha.seconds * 1000).toLocaleString()
-          : "Fecha no disponible";
         const venta = document.createElement("div");
         venta.className = "venta";
-        venta.innerHTML = `<div><strong>${data.mesa}</strong> – $${data.total.toFixed(2)}</div><div>${fechaStr}</div>`;
+        venta.innerHTML = `<div><strong>${data.mesa}</strong> – $${data.total.toFixed(2)}</div><div>${new Date(data.fecha.seconds * 1000).toLocaleString()}</div>`;
         ventasList.appendChild(venta);
       });
 
@@ -260,8 +253,9 @@
     };
   </script>
 </head>
+
 <body>
-  <a href="admin.html">👨‍💼</a>
+  <a href="../pages/admin.html">👨‍💼</a>
   <h1>Panel del Vendedor</h1>
 
   <div id="alerta" class="alerta"></div>
@@ -304,4 +298,5 @@
     <div id="historial-caja"></div>
   </section>
 </body>
+
 </html>
